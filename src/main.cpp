@@ -54,6 +54,12 @@ using std::vector;
 extern void random_test();
 
 
+//---------------------- 局部 变量 ---------------------
+static double cursor_xpos;
+static double cursor_ypos;
+static glm::vec2 cursor_v2;
+
+
 /* ===========================================================
  *                        main
  * -----------------------------------------------------------
@@ -67,8 +73,6 @@ int main(){
     //==========================================//
     //                  TEST
     //------------------------------------------//
-
-        
         //cout << "\n\n__ DEBUG _ RETURN __\n" << endl;
         //return(0);
     //------------------------------------------//
@@ -90,7 +94,7 @@ int main(){
     //                shader_program
     //---------------------------------------------//
     ShaderProgram rect_shader( "/shaders/base.vs",
-                               "/shaders/base.fs" );
+                               "/shaders/001_liquid.fs" );
     rect_shader.init();
 
     //--- 
@@ -100,6 +104,8 @@ int main(){
 
     rect_shader.get_uniform_location( "texture1" );
 
+    rect_shader.get_uniform_location( "u_mouse" ); //- 向 shader 传入鼠标信息
+    rect_shader.get_uniform_location( "u_time" );  //- 向 shader 传入时间信息
 
     rect_shader.use_program();
 
@@ -112,27 +118,22 @@ int main(){
     textel_1.set_png_builder( &MapBuilder::map_builder );
 
     
-    //-- 生成一个 16 * 16 像素的 顶点数据集
-    //-- 推荐被 合并到 Model 类内
-    //RectVertics rv_1(16, 16); 
+    //-- 生成一个 w * h 像素的 顶点数据集
     RectVertics rv_1( WORK_WIDTH, WORK_HEIGHT );
-    //RectVertics rv_1( 256, 256 );
 
-    Model mod_1;
-    mod_1.set_VBO( rv_1.get_data(),
+    Model canvas;
+    canvas.set_VBO( rv_1.get_data(),
                     rv_1.get_size(),
                     rv_1.get_stride()  
                     );
     
+    canvas.add_texture( textel_1 );
     
-    mod_1.add_texture( textel_1 );
-    
-    mod_1.set_shader_program( &rect_shader );
+    canvas.set_shader_program( &rect_shader );
 
-    mod_1.init();
+    canvas.init();
 
-    mod_1.set_translate( glm::vec3( -(WORK_WIDTH / 2.0f), -(WORK_HEIGHT / 2.0f), 0.0f ) );
-    //mod_1.set_translate( glm::vec3( -(256 / 2.0f), -(256 / 2.0f), 0.0f ) );
+    canvas.set_translate( glm::vec3( -(WORK_WIDTH / 2.0f), -(WORK_HEIGHT / 2.0f), 0.0f ) );
     
 
     //---------------------------------------------//
@@ -143,7 +144,6 @@ int main(){
     //-- 为 两个 uniform 变量 texture1,texture2  设置值。
     //-- 分别指向 GL_TEXTURE0，GL_TEXTURE1 这两个 纹理单元。
     glUniform1i( rect_shader.uniform_location( "texture1" ), 0);
-    //glUniform1i( rect_shader.uniform_location( "texture2" ), 1);
 
 
     //---------------------------------------------//
@@ -157,13 +157,28 @@ int main(){
     //---------------------------------------------//
     //           main render loop
     //---------------------------------------------//
-
-        //u64 print_counter = 0;
-
     while( !glfwWindowShouldClose( window ) ){
 
         //------- 刷新 deltaTime ---------//
         update_time();
+
+        //-------- u_time -----------//
+        rect_shader.use_program();
+        glUniform1f( rect_shader.uniform_location( "u_time" ),
+                    (float)glfwGetTime() );
+
+        //-------- u_mouse ----------//
+        glfwGetCursorPos( window, &cursor_xpos, &cursor_ypos );
+
+        cursor_v2 = glm::vec2( (float)cursor_xpos / (float)SCR_WIDTH,
+                               (float)cursor_ypos / (float)SCR_HEIGHT
+                               );
+
+        rect_shader.use_program();
+        glUniform2fv( rect_shader.uniform_location( "u_mouse" ),
+                    1,
+                    (const GLfloat*)(glm::value_ptr( cursor_v2 ))
+                    );
 
         //------- input 处理 -----------//
         //-- 目前这个版本 非常简陋
@@ -189,7 +204,7 @@ int main(){
 
         //-------------------- 绘制图形 -----------------------
 
-        mod_1.model_draw();
+        canvas.model_draw();
 
 
         //-- check and call events and swap the buffers
@@ -214,7 +229,7 @@ int main(){
 
 
     //------------ 删除 所有 model -------------
-    mod_1.model_delete();
+    canvas.model_delete();
 
     //---------------------------------------------//
     //                glfw Terminate

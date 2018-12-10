@@ -46,6 +46,7 @@ vec2 lt;
 // out    -- 只写
 // inout  -- 可读可写
 void prepare();
+vec2 random2( vec2 p );
 
 
 /* ====================================================
@@ -53,24 +54,48 @@ void prepare();
  * ----------------------------------------------------
  * -- 无视 texture1 的影响，一个纯粹的 fs
  */
-void main()
-{
+void main(){
 
     prepare();
 
-    
+    //-- 
+    lb *= 1.0;
 
+    // Tile the space
+    vec2 i_st = floor(lb);
+    vec2 f_st = fract(lb);
 
-    //- 分为 20 份
-    vec2 f = floor( lt * 10.0 ) / 10.0;
-    
-    
-    
+    float m_dist = 1.;  // minimun distance
 
-    
-    color = vec3( f.xxx );
-    //color = vec3( v, v, 0.5 );
-    //color = vec3( u_mouse, 0.5 );
+    //- 遍历 3*3矩阵 的 每个点 --
+    for (int j= -1; j <= 1; j++ ) {
+        for (int i= -1; i <= 1; i++ ) {
+
+            //- 3*3矩阵 的 每个点，距离 本像素的 坐标
+            //- [-1.0, -1.0] -> [1.0, 1.0] 
+            vec2 neighbor = vec2(float(i),float(j));
+
+            // Random position from current + neighbor place in the grid
+            vec2 offset = random2(i_st + neighbor);
+            //vec2 offset = i_st + neighbor;
+
+            // Animate the offset
+            offset = 0.5 + 0.5*sin(u_time + 6.2831*offset);
+
+            // Position of the cell
+            vec2 pos = neighbor + offset - f_st;
+
+            // Cell distance
+            float dist = length(pos);
+
+            // Metaball it!
+            m_dist = min(m_dist, m_dist*dist);
+        }
+    }
+
+    // Draw cells
+    color += step(0.092, m_dist);
+
     FragColor = vec4( color, 1.0 );
 }
 
@@ -92,10 +117,31 @@ void prepare(){
     //-- 左上 坐标系 [0,1]
     lt.x = (u_resolution.x + 1.0)/2.0; //-- [0,1]
     lt.y = (1.0 - u_resolution.y)/2.0; //-- [0,1]
+}
 
 
+/* ====================================================
+ *                    random2
+ * ----------------------------------------------------
+ * -- 
+ */
+vec2 random2( vec2 p ) {
 
+    //-- 计算 参数向量 p 于两个 向量的 点积。
+    //-  就是 夹角的 cos值  [0.0, 1.0]
+    float dot_1 = dot(p,vec2(127.1,311.7));
+    float dot_2 = dot(p,vec2(269.5,183.3));
+
+
+    vec2 r = sin( vec2( dot_1, dot_2 ) );
+    r *= 43758.5453;
+
+    return fract( r );
 
 }
+
+
+
+
 
 

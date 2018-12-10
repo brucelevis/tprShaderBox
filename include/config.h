@@ -37,6 +37,14 @@
 
 
 
+//-- canvas texture 是绑定现成 图片文件，还是绑定 代码生成的 png-data
+//-- 0 -- 绑定 现成的 图片文件
+//-- 1 -- 绑定 代码生成的 png data
+#define IS_USE_SELF_PNG_DATA 0 
+
+
+
+
 #endif
 
 
